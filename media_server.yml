@@ -36,7 +36,7 @@
         repo: "deb [signed-by=/etc/apt/trusted.gpg.d/docker.asc] https://download.docker.com/linux/ubuntu jammy stable"
         state: present
     
-    - name: Update apt and isntall docker-ce
+    - name: Update apt and install docker-ce
       apt:
         name: docker-ce
         state: latest
@@ -61,3 +61,71 @@
       community.docker.docker_image:
         name: "jellyfin/jellyfin"
         source: pull
+    
+    - name: Create a folder to mount the external hard drive
+      file:
+        path: /media/easystore
+        state: directory
+        mode: '0755'
+    
+    - name: mount the external hard drive
+      ansible.posix.mount:
+        path: /media/easystore
+        src: /dev/sdb1
+        fstype: ntfs
+        state: mounted 
+
+    - name: Create a movie folder on the drive
+      file:
+        path: /media/easystore/media/Movies
+        state: directory
+        mode: '0755'
+
+    - name: Create a shows folder on the drive
+      file:
+        path: /media/easystore/media/Shows
+        state: directory
+        mode: '0755'
+
+    - name: Create a cache folder on the drive
+      file:
+        path: /media/easystore/cache
+        state: directory
+        mode: '0755'
+
+    - name: Create a config folder on the drive
+      file:
+        path: /media/easystore/config
+        state: directory
+        mode: '0755'
+
+    - name: install samba
+      apt:
+        pkg:
+          - samba
+        state: latest
+        update_cache: true
+
+    - name: Update the samba.conf file
+      blockinfile:
+        path: /etc/samba/smb.conf 
+        block: |
+          [jellyfin]
+            comment = Samba on Ubuntu
+            path = /media/easystore
+            read only = no
+            browsable = yes
+
+    - name: Restart the samba service
+      service:
+        name: smbd
+        state: restarted 
+    
+    - name: Update the ufw firewall
+      community.general.ufw:
+        rule: allow
+        name: samba
+
+    - name: Add default user to the samba permissions
+      shell:  "(echo {{ smbpass }}; echo {{ smbpass }}) | smbpasswd -s joe" 
+      become: yes
