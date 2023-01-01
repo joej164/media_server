@@ -1,0 +1,63 @@
+---
+- hosts: servers
+  become: true
+
+  tasks:
+    - name: Update and install desired packages
+      apt:
+        pkg:
+          - vim
+          - git
+        state: latest
+        update_cache: yes
+    
+    - name: update apt
+      apt:
+        update_cache: yes
+
+    - name: install docker prereqs
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - python3-pip
+        state: latest
+        update_cache: yes
+    
+    - name: Add GPG Key 
+      get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/trusted.gpg.d/docker.asc
+    
+    - name: Add Docker Repo
+      apt_repository: 
+        repo: "deb [signed-by=/etc/apt/trusted.gpg.d/docker.asc] https://download.docker.com/linux/ubuntu jammy stable"
+        state: present
+    
+    - name: Update apt and isntall docker-ce
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: true
+
+    - name: verify docker is running
+      systemd:
+        state: started
+        name: docker
+    
+    - name: put user in docker group
+      user:
+        name: joe
+        groups: docker
+        append: yes
+    
+    - name: Install python docker package
+      pip:
+        name: docker
+    
+    - name: Pull down desired images 
+      community.docker.docker_image:
+        name: "jellyfin/jellyfin"
+        source: pull
