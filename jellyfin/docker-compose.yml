@@ -3,16 +3,26 @@ services:
   jellyfin:
     image: jellyfin/jellyfin
     container_name: jellyfin
-    user: uid:gid
+    user: 1000:1000
     network_mode: 'host'
     volumes:
-      - /media/easystore/config:/config
-      - /media/easystore/cache:/cache
-      - /media/easystore/media:/media
+      - type: bind
+        source: /media/easystore/config
+        target: /config
+      - type: bind
+        source: /media/easystore/cache
+        target: /cache
+      - type: bind
+        source: /media/easystore/media
+        target: /media
     restart: 'unless-stopped'
     # Optional - alternative address used for autodiscovery
     environment:
-      - JELLYFIN_PublishedServerUrl=http://jellyfin.local
+      - JELLYFIN_PublishedServerUrl=http://ubuntu:8096
     # Optional - may be necessary for docker healthcheck to pass if running in host network mode
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    devices:
+      # VAAPI Devices (examples)
+      - /dev/dri/renderD128:/dev/dri/renderD128
+      - /dev/dri/card0:/dev/dri/card0

@@ -56,7 +56,19 @@
     - name: Install python docker package
       pip:
         name: docker
-    
+
+    - name: create directory for docker compose
+      file:
+        path: /home/joe/.docker/cli-plugins/
+        state: directory
+        mode: '0755'
+      
+    - name: Install Docker compose 
+      get_url:
+        url: https://github.com/docker/compose/releases/download/v2.14.2/docker-compose-linux-x86_64 
+        dest: /home/joe/.docker/cli-plugins/docker-compose
+        mode: "u=rwx,g=rx,o=rx"
+
     - name: Pull down desired images 
       community.docker.docker_image:
         name: "jellyfin/jellyfin"
@@ -129,3 +141,72 @@
     - name: Add default user to the samba permissions
       shell:  "(echo {{ smbpass }}; echo {{ smbpass }}) | smbpasswd -s joe" 
       become: yes
+
+    - name: Copy Jellyfin Docker Compose file to server
+      copy:
+        src: ./jellyfin/docker-compose.yml
+        dest: /home/joe/jellyfin/
+        mode: '0755'
+
+    - name: Copy Jellyfin SystemD file to the server 
+      copy:
+        src: ./jellyfin/jellyfin.service
+        dest: /etc/systemd/system/
+        mode: '0644'
+
+    - name: Enable Jellyfin Service
+      systemd:
+        name: jellyfin
+        state: started 
+        enabled: true
+
+    - name: Copy PiHole Docker Compose file to server
+      copy:
+        src: ./pihole/docker-compose.yml
+        dest: /home/joe/pihole/
+        mode: '0755'
+    
+    - name: Modify resolved.conf to disable DNS listener
+      lineinfile:
+        dest:  /etc/systemd/resolved.conf
+        regexp: #DNSStubListener=yes
+        line: DNSStubListener=no
+    
+    - name: Restart the SystemD Resolved service
+      service:
+        name: systemd-resolved
+        state: restarted
+
+    - name: Copy PiHole SystemD file to the server 
+      copy:
+        src: ./pihole/pihole.service
+        dest: /etc/systemd/system/
+        mode: '0644'
+
+    - name: Enable Pihole Service
+      systemd:
+        name: pihole 
+        state: started 
+        enabled: true
+
+    - name: Wait for Pihole to start
+      pause:
+        seconds: 15
+
+    - name: Get Logs for Pihole
+      command: docker logs pihole
+      register: output
+
+    - name: Parse the logs looking for the password that was set for Pihole 
+      set_fact:
+        pw: "{{ output.stdout | regex_search('Assigning random password: \\S+') }}"
+    
+    - name: Output the Password 
+      debug:
+        var: pw
+    
+    - name: Install Tailscale
+      include_role:
+        name: artis3n.tailscale
+      vars:
+        tailscale_up_skip: true
