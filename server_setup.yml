@@ -1,0 +1,76 @@
+---
+- hosts: servers
+  become: true
+
+  tasks:
+    - name: Update and install desired packages
+      apt:
+        pkg:
+          - vim
+          - git
+        state: latest
+        update_cache: yes
+    
+    - name: update apt
+      apt:
+        update_cache: yes
+
+    - name: install docker prereqs
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - python3-pip
+        state: latest
+        update_cache: yes
+    
+    - name: Add GPG Key 
+      get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/trusted.gpg.d/docker.asc
+    
+    - name: Add Docker Repo
+      apt_repository: 
+        repo: "deb [signed-by=/etc/apt/trusted.gpg.d/docker.asc] https://download.docker.com/linux/ubuntu jammy stable"
+        state: present
+    
+    - name: Update apt and install docker-ce
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: true
+
+    - name: verify docker is running
+      systemd:
+        state: started
+        name: docker
+    
+    - name: put user in docker group
+      user:
+        name: joe
+        groups: docker
+        append: yes
+    
+    - name: Install python docker package
+      pip:
+        name: docker
+
+    - name: create directory for docker compose
+      file:
+        path: /home/joe/.docker/cli-plugins/
+        state: directory
+        mode: '0755'
+      
+    - name: Install Docker compose 
+      get_url:
+        url: https://github.com/docker/compose/releases/download/v2.14.2/docker-compose-linux-x86_64 
+        dest: /home/joe/.docker/cli-plugins/docker-compose
+        mode: "u=rwx,g=rx,o=rx"
+
+    - name: Install Tailscale
+      include_role:
+        name: artis3n.tailscale
+      vars:
+        tailscale_up_skip: true
