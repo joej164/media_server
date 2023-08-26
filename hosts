@@ -1,5 +1,6 @@
 [servers]
-ubuntu-server
+ubuntu-server ansible_host=192.168.68.98
+arm ansible_host=192.168.68.97
 
 [all:vars]
 ansible_python_interpreter=/usr/bin/python3

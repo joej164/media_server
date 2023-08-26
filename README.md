@@ -14,8 +14,8 @@ Once loaded just navigate to http://<server name or ip>:8096 and configure the s
 - Install tailscale role `ansible-galaxy install artis3n.tailscale`
 
 ## Commands
-`ansible-inventory --list -y -i hosts`
-`ansible-playbook media_server.yml -k -i hosts --ask-become-pass --extra-vars "smbpass=<<smbpasshere>>"`
+- `ansible-inventory --list -y -i hosts`
+- `ansible-playbook media_server.yml -k -i hosts --ask-become-pass --extra-vars "smbpass=<<smbpasshere>>"`
 
 
 ## Post Ansible Run
